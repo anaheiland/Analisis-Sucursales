@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QTC — Centro de Inteligencia Comercial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   QTC INTELLIGENCE DASHBOARD — DESIGN SYSTEM
+═══════════════════════════════════════════════════════════ */
+:root {
+  --bg:        #0D0F14;
+  --bg2:       #13161E;
+  --bg3:       #1A1E2A;
+  --bg4:       #222736;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.12);
+  --text1:     #F0F2F7;
+  --text2:     #9BA3B8;
+  --text3:     #5C6480;
+  --accent:    #4F8EF7;
+  --accent2:   #3ECFAB;
+  --warn:      #F5A623;
+  --danger:    #F05252;
+  --success:   #3EBF7A;
+  --purple:    #9B7EF8;
+  --mono:      'DM Mono', monospace;
+  --sans:      'DM Sans', sans-serif;
+  --radius:    10px;
+  --radius-lg: 16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text1);font-family:var(--sans);font-size:14px;min-height:100vh}
+
+/* ── LAYOUT ── */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform .3s}
+.main{margin-left:220px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.content{padding:20px 24px;flex:1}
+
+/* ── SIDEBAR ── */
+.logo{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.logo-name{font-size:16px;font-weight:600;letter-spacing:-.3px;color:var(--text1)}
+.logo-sub{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+.nav-section{padding:12px 10px 4px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);font-weight:500}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;margin:1px 6px;border-radius:8px;cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;border:none;background:none;width:calc(100% - 12px);text-align:left}
+.nav-item:hover{background:var(--bg3);color:var(--text1)}
+.nav-item.active{background:linear-gradient(135deg,rgba(79,142,247,.18),rgba(62,207,171,.10));color:var(--text1);border:1px solid rgba(79,142,247,.25)}
+.nav-icon{width:16px;height:16px;opacity:.7;flex-shrink:0}
+.nav-item.active .nav-icon{opacity:1}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:9px;font-weight:600;padding:2px 5px;border-radius:10px;font-family:var(--mono)}
+.sidebar-footer{margin-top:auto;padding:14px 12px;border-top:1px solid var(--border)}
+.update-chip{font-size:10px;color:var(--text3);display:flex;align-items:center;gap:5px}
+.dot-live{width:5px;height:5px;border-radius:50%;background:var(--success);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── TOPBAR ── */
+.page-title{font-size:15px;font-weight:500;color:var(--text1)}
+.filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.filter-select{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-size:12px;padding:6px 10px;font-family:var(--sans);cursor:pointer;outline:none}
+.filter-select:focus{border-color:var(--accent)}
+.btn-refresh{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-size:12px;padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:var(--sans);transition:all .15s}
+.btn-refresh:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── VIEWS ── */
+.view{display:none}.view.on{display:block}
+
+/* ── METRIC CARDS ── */
+.metrics-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;position:relative;overflow:hidden}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.metric.blue::before{background:linear-gradient(90deg,var(--accent),transparent)}
+.metric.green::before{background:linear-gradient(90deg,var(--success),transparent)}
+.metric.warn::before{background:linear-gradient(90deg,var(--warn),transparent)}
+.metric.danger::before{background:linear-gradient(90deg,var(--danger),transparent)}
+.metric.purple::before{background:linear-gradient(90deg,var(--purple),transparent)}
+.metric.teal::before{background:linear-gradient(90deg,var(--accent2),transparent)}
+.metric-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.metric-value{font-size:28px;font-weight:300;color:var(--text1);letter-spacing:-1px;font-family:var(--mono)}
+.metric-sub{font-size:11px;color:var(--text2);margin-top:4px}
+.metric-badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;margin-top:6px;font-weight:500}
+.mb-g{background:rgba(62,191,122,.15);color:var(--success);border:1px solid rgba(62,191,122,.2)}
+.mb-a{background:rgba(245,166,35,.12);color:var(--warn);border:1px solid rgba(245,166,35,.2)}
+.mb-r{background:rgba(240,82,82,.12);color:var(--danger);border:1px solid rgba(240,82,82,.2)}
+.mb-b{background:rgba(79,142,247,.12);color:var(--accent);border:1px solid rgba(79,142,247,.2)}
+
+/* ── CARD ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:14px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-title{font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.grid-32{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+.tbl td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text1);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--bg3)}
+.tbl td.mono{font-family:var(--mono);font-size:11px}
+.bar-w{display:flex;align-items:center;gap:6px}
+.bar-bg2{flex:1;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;min-width:50px}
+.bar-f2{height:100%;border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+
+/* ── PILLS ── */
+.pill{display:inline-flex;align-items:center;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap}
+.pg{background:rgba(62,191,122,.12);color:var(--success);border:1px solid rgba(62,191,122,.15)}
+.pa{background:rgba(245,166,35,.1);color:var(--warn);border:1px solid rgba(245,166,35,.15)}
+.pr{background:rgba(240,82,82,.1);color:var(--danger);border:1px solid rgba(240,82,82,.15)}
+.pb{background:rgba(79,142,247,.1);color:var(--accent);border:1px solid rgba(79,142,247,.15)}
+
+/* ── ALERTS ── */
+.alert-item{display:flex;gap:12px;padding:12px;border-radius:var(--radius);margin-bottom:8px;border:1px solid}
+.alert-item.red{background:rgba(240,82,82,.07);border-color:rgba(240,82,82,.2)}
+.alert-item.amber{background:rgba(245,166,35,.07);border-color:rgba(245,166,35,.2)}
+.alert-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px}
+.alert-icon.red{background:rgba(240,82,82,.2);color:var(--danger)}
+.alert-icon.amber{background:rgba(245,166,35,.15);color:var(--warn)}
+.alert-title{font-size:12px;font-weight:500;color:var(--text1);margin-bottom:3px}
+.alert-detail{font-size:11px;color:var(--text2);line-height:1.5}
+.alert-meta{font-size:10px;font-family:var(--mono);color:var(--text3);margin-top:4px}
+
+/* ── FUNNEL ── */
+.funnel-step{display:flex;align-items:center;gap:10px;padding:8px 0}
+.funnel-label{font-size:11px;color:var(--text2);width:100px;flex-shrink:0}
+.funnel-track{flex:1;height:22px;background:var(--bg4);border-radius:4px;overflow:hidden;position:relative}
+.funnel-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding:0 8px;font-size:10px;font-weight:600;color:#fff;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.funnel-count{font-size:11px;font-family:var(--mono);color:var(--text2);width:32px;text-align:right;flex-shrink:0}
+
+/* ── RANK BADGE ── */
+.rank-num{font-family:var(--mono);font-size:11px;color:var(--text3);width:22px;flex-shrink:0}
+.rank-num.top1{color:var(--warn)}
+.rank-num.top2{color:var(--text2)}
+.rank-num.top3{color:var(--accent2)}
+
+/* ── TREND ARROW ── */
+.trend{font-size:12px}.trend.up{color:var(--success)}.trend.dn{color:var(--danger)}.trend.eq{color:var(--text3)}
+
+/* ── LOADING ── */
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s}
+.load-spinner{width:36px;height:36px;border:2px solid var(--bg4);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-text{font-size:13px;color:var(--text2)}
+
+/* ── SCROLL ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+
+/* ── KPI MATRIX QUADRANT LABELS ── */
+.matrix-label{position:absolute;font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+
+/* ── OVERFLOW SCROLL ── */
+.scroll-x{overflow-x:auto}
+
+@media(max-width:900px){
+  .sidebar{transform:translateX(-220px)}
+  .main{margin-left:0}
+  .grid-2,.grid-3,.grid-32{grid-template-columns:1fr}
+  .metrics-row{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="load-spinner"></div>
+  <div class="load-text">Cargando inteligencia comercial…</div>
+</div>
+
+<div class="shell">
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <nav class="sidebar">
+    <div class="logo">
+      <div class="logo-name">QTC Intelligence</div>
+      <div class="logo-sub">Panel de Jefatura</div>
+    </div>
+    <div class="nav-section">Análisis</div>
+    <button class="nav-item active" onclick="showView('exec',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+      Resumen ejecutivo
+    </button>
+    <button class="nav-item" onclick="showView('pipeline',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+      Pipeline & Funnel
+    </button>
+    <button class="nav-item" onclick="showView('ranking',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v12M4 6v8M12 4v10"/></svg>
+      Ranking equipos
+    </button>
+    <button class="nav-item" id="nav-alertas" onclick="showView('alertas',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1L1 13h14L8 1z"/><path d="M8 6v3M8 11v.5"/></svg>
+      Alertas de acción
+      <span class="nav-badge" id="badge-alertas">0</span>
+    </button>
+    <button class="nav-item" onclick="showView('mercado',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 2a10 10 0 010 12M2 8h12"/></svg>
+      Inteligencia de mercado
+    </button>
+    <div class="sidebar-footer">
+      <div class="update-chip">
+        <span class="dot-live"></span>
+        <span id="last-update-label">Cargando…</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══ MAIN ═══ -->
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="page-title">Resumen ejecutivo</div>
+      <div class="filters">
+        <select class="filter-select" id="f-year" onchange="applyFilters()">
+          <option value="all">Todos los años</option>
+        </select>
+        <select class="filter-select" id="f-month" onchange="applyFilters()">
+          <option value="all">Todos los meses</option>
+        </select>
+        <select class="filter-select" id="f-tienda" onchange="applyFilters()">
+          <option value="all">Todas las tiendas</option>
+        </select>
+        <button class="btn-refresh" onclick="loadData()">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 8a7 7 0 1013.5-2.5"/><path d="M14.5 2v3.5H11"/></svg>
+          Actualizar
+        </button>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- VIEW: RESUMEN EJECUTIVO -->
+      <div id="v-exec" class="view on">
+        <div class="metrics-row" id="exec-cards"></div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Ventas vs meta — por sucursal</span></div>
+            <div style="height:240px;position:relative"><canvas id="ch-ventas-meta"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">KPI promedio — ranking sucursales</span></div>
+            <div id="kpi-bar-list" style="padding:4px 0"></div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Efectividad CRM → Venta %</span></div>
+            <div style="height:220px;position:relative"><canvas id="ch-conv"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Evolución mensual</span>
+              <div style="display:flex;gap:6px">
+                <button class="pill pb" onclick="setMetricEvol('ventas',this)" id="btn-ventas" style="cursor:pointer">Ventas</button>
+                <button class="pill" onclick="setMetricEvol('crm',this)" id="btn-crm" style="cursor:pointer;background:var(--bg4);border:1px solid var(--border2);color:var(--text2)">CRM</button>
+                <button class="pill" onclick="setMetricEvol('reus',this)" id="btn-reus" style="cursor:pointer;background:var(--bg4);border:1px solid var(--border2);color:var(--text2)">Reuniones</button>
+              </div>
+            </div>
+            <div style="height:200px;position:relative"><canvas id="ch-evol"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: PIPELINE & FUNNEL -->
+      <div id="v-pipeline" class="view">
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Funnel de conversión</span></div>
+            <div id="funnel-viz"></div>
+            <div id="funnel-ratios" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Estado del pipeline</span></div>
+            <div style="height:200px;position:relative"><canvas id="ch-pipeline-state"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Ventas potenciales en campo</span></div>
+            <div id="vp-bars"></div>
+          </div>
+        </div>
+        <div class="grid-32">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Tabla pipeline — funnel completo por sucursal</span></div>
+            <div class="scroll-x">
+              <table class="tbl">
+                <thead><tr>
+                  <th>Sucursal</th><th>CRM</th><th>Demo</th><th>Ventas</th>
+                  <th>CRM→Demo</th><th>Demo→Venta</th><th>CRM→Venta</th><th>Potencial</th><th>Estado</th>
+                </tr></thead>
+                <tbody id="pipeline-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Barreras del mercado</span></div>
+            <div style="height:240px;position:relative"><canvas id="ch-limitantes"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: RANKING EQUIPOS -->
+      <div id="v-ranking" class="view">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Ranking ejecutivos — KPI multidimensional 2026</span></div>
+          <div class="scroll-x">
+            <table class="tbl">
+              <thead><tr>
+                <th>#</th><th>Ejecutivo</th><th>Sucursal</th><th>Ventas</th><th>Meta</th>
+                <th>Cumpl.</th><th>Demos</th><th>Reuniones</th><th>Cli. nuevos</th>
+                <th>KPI prom.</th><th>Tendencia</th><th>Nivel</th>
+              </tr></thead>
+              <tbody id="ranking-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><span class="card-title">KPI mensual — top ejecutivos</span></div>
+            <div style="height:240px;position:relative"><canvas id="ch-kpi-evol"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Radar de desempeño — top 3</span></div>
+            <div style="height:240px;position:relative"><canvas id="ch-radar"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: ALERTAS -->
+      <div id="v-alertas" class="view">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🔴 Alertas críticas — acción inmediata</span>
+              <span class="pill pr" id="count-red">0</span>
+            </div>
+            <div id="alerts-red"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">🟡 Oportunidades — atención requerida</span>
+              <span class="pill pa" id="count-amber">0</span>
+            </div>
+            <div id="alerts-amber"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Matriz de decisión — sucursales (KPI vs conversión)</span></div>
+          <div style="height:300px;position:relative"><canvas id="ch-matrix"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Variables de alerta monitoreadas</span></div>
+          <div id="alert-variables"></div>
+        </div>
+      </div>
+
+      <!-- VIEW: MERCADO -->
+      <div id="v-mercado" class="view">
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Perfil del cliente</span></div>
+            <div style="height:190px;position:relative"><canvas id="ch-perfil"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Drones de mayor interés</span></div>
+            <div style="height:190px;position:relative"><canvas id="ch-interes"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Tipo de pago preferido</span></div>
+            <div style="height:190px;position:relative"><canvas id="ch-pago"></canvas></div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Canal de entrada del cliente</span></div>
+            <div style="height:200px;position:relative"><canvas id="ch-proced"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Cultivos atendidos</span></div>
+            <div style="height:200px;position:relative"><canvas id="ch-cultivos"></canvas></div>
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Hectáreas prom. por sucursal</span></div>
+            <div id="hect-list"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Meses estimados de ROI</span></div>
+            <div id="roi-list"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Intención de compra en campo</span></div>
+            <div id="intencion-viz"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Variables de inteligencia de mercado monitoreadas</span></div>
+          <div id="market-variables"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   QTC DASHBOARD — ENGINE
+════════════════════════════════════════════════════════ */
+const COLORS = ['#4F8EF7','#3ECFAB','#F5A623','#F05252','#9B7EF8','#3EBF7A','#E8765A','#64B5F6','#81C784','#FFD54F'];
+const MESES  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Setiembre','Octubre','Noviembre','Diciembre'];
+const CHARTS = {};
+let D = null; // global data
+let EVOL_METRIC = 'ventas';
+
+/* ── DATA LOAD ── */
+async function loadData() {
+  try {
+    const r = await fetch('qtc_data.json?t=' + Date.now());
+    if (!r.ok) throw new Error('No se encontró qtc_data.json');
+    D = await r.json();
+  } catch(e) {
+    // Fallback: carga el JSON embebido en la página (modo offline)
+    D = window.QTC_DATA_EMBEDDED;
+    if (!D) { alert('Error cargando datos: ' + e.message); return; }
+  }
+  populateFilters();
+  applyFilters();
+  document.getElementById('loading').style.opacity = '0';
+  setTimeout(() => document.getElementById('loading').style.display = 'none', 400);
+  document.getElementById('last-update-label').textContent = 'Actualizado: ' + (D.last_update || 'hoy');
+}
+
+/* ── FILTERS ── */
+function populateFilters() {
+  const years  = [...new Set(D.resultados.map(r => r.anio).filter(Boolean))].sort();
+  const tiends = [...new Set(D.resultados.map(r => r.tienda))].filter(Boolean).sort();
+  const fyear  = document.getElementById('f-year');
+  const ftien  = document.getElementById('f-tienda');
+  fyear.innerHTML = '<option value="all">Todos los años</option>' + years.map(y => `<option value="${y}" ${y==2026?'selected':''}>${y}</option>`).join('');
+  document.getElementById('f-month').innerHTML = '<option value="all">Todos los meses</option>' + MESES.map(m => `<option value="${m}">${m}</option>`).join('');
+  ftien.innerHTML  = '<option value="all">Todas las tiendas</option>' + tiends.map(t => `<option value="${t}">${t}</option>`).join('');
+}
+
+function getFilters() {
+  return {
+    year:   document.getElementById('f-year').value,
+    month:  document.getElementById('f-month').value,
+    tienda: document.getElementById('f-tienda').value,
+  };
+}
+
+function filterRes(f) {
+  return D.resultados.filter(r =>
+    (f.year   === 'all' || String(r.anio) === f.year) &&
+    (f.month  === 'all' || r.mes === f.month) &&
+    (f.tienda === 'all' || r.tienda === f.tienda) &&
+    r.anio > 0
+  );
+}
+
+function filterKPI(f) {
+  return D.kpi_ejecutivos.filter(r =>
+    (f.year   === 'all' || (r.fecha||'').startsWith(f.year)) &&
+    (f.tienda === 'all' || r.tienda === f.tienda)
+  );
+}
+
+function applyFilters() {
+  if (!D) return;
+  const f = getFilters();
+  renderExec(f);
+  const view = document.querySelector('.view.on');
+  if (view) {
+    const id = view.id.replace('v-','');
+    if (id === 'pipeline') renderPipeline(f);
+    if (id === 'ranking')  renderRanking(f);
+    if (id === 'alertas')  renderAlertas();
+    if (id === 'mercado')  renderMercado();
+  }
+}
+
+/* ── VIEW SWITCH ── */
+const VIEW_TITLES = { exec:'Resumen ejecutivo', pipeline:'Pipeline & Funnel', ranking:'Ranking equipos', alertas:'Alertas de acción', mercado:'Inteligencia de mercado' };
+function showView(id, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('v-' + id).classList.add('on');
+  btn.classList.add('active');
+  document.getElementById('page-title').textContent = VIEW_TITLES[id];
+  const f = getFilters();
+  if (id === 'pipeline') renderPipeline(f);
+  if (id === 'ranking')  renderRanking(f);
+  if (id === 'alertas')  renderAlertas();
+  if (id === 'mercado')  renderMercado();
+}
+
+/* ── CHART HELPERS ── */
+function dc(id) { if (CHARTS[id]) { CHARTS[id].destroy(); delete CHARTS[id]; } }
+const GRID = { color: 'rgba(255,255,255,0.05)' };
+const TICK = { color: '#5C6480', font: { size: 10, family: 'DM Sans' } };
+const LEGEND = { labels: { color: '#9BA3B8', font: { size: 10, family: 'DM Sans' }, boxWidth: 8, padding: 10 } };
+
+/* ── AGG ── */
+function aggByTienda(rows) {
+  const m = {};
+  rows.forEach(r => {
+    if (!m[r.tienda]) m[r.tienda] = { v: 0, meta: 0, crm: 0, reus: 0, eff: [], cnt: 0 };
+    m[r.tienda].v    += r.ventas || 0;
+    m[r.tienda].meta += r.meta   || 0;
+    m[r.tienda].crm  += r.crm    || 0;
+    m[r.tienda].reus += r.reus   || 0;
+    if (r.efectividad > 0) m[r.tienda].eff.push(r.efectividad);
+    m[r.tienda].cnt++;
+  });
+  return m;
+}
+
+/* ══════════════════════════════════════════════
+   VISTA 1 — RESUMEN EJECUTIVO
+══════════════════════════════════════════════ */
+function renderExec(f) {
+  const res  = filterRes(f);
+  const kpis = filterKPI(f);
+  const byT  = aggByTienda(res);
+  const ts   = Object.keys(byT).sort((a,b) => byT[b].v - byT[a].v);
+
+  const totV    = res.reduce((s,r) => s + r.ventas, 0);
+  const totM    = res.reduce((s,r) => s + r.meta, 0);
+  const totC    = res.reduce((s,r) => s + r.crm, 0);
+  const totR    = res.reduce((s,r) => s + r.reus, 0);
+  const cumpl   = totM > 0 ? Math.round(totV / totM * 100) : 0;
+  const avgKPI  = kpis.length ? kpis.reduce((s,r) => s + r.kpi, 0) / kpis.length : 0;
+  const effRows = res.filter(r => r.efectividad > 0);
+  const avgEff  = effRows.length ? effRows.reduce((s,r) => s + r.efectividad, 0) / effRows.length : 0;
+
+  document.getElementById('exec-cards').innerHTML = `
+    <div class="metric blue"><div class="metric-label">Ventas totales</div><div class="metric-value">${totV}</div><div class="metric-sub">Meta: ${totM}</div><span class="metric-badge ${cumpl>=80?'mb-g':cumpl>=50?'mb-a':'mb-r'}">${cumpl}% cumplimiento</span></div>
+    <div class="metric teal"><div class="metric-label">CRM activos</div><div class="metric-value">${totC}</div><div class="metric-sub">Leads registrados</div></div>
+    <div class="metric purple"><div class="metric-label">Reuniones</div><div class="metric-value">${totR}</div><div class="metric-sub">Visitas ejecutadas</div></div>
+    <div class="metric green"><div class="metric-label">KPI promedio</div><div class="metric-value">${Math.round(avgKPI*100)}%</div><span class="metric-badge ${avgKPI>=.7?'mb-g':avgKPI>=.4?'mb-a':'mb-r'}">${avgKPI>=.7?'Bueno':avgKPI>=.4?'Regular':'Bajo'}</span></div>
+    <div class="metric warn"><div class="metric-label">Efectividad CRM</div><div class="metric-value">${avgEff.toFixed(1)}%</div><div class="metric-sub">Tasa de conversión</div></div>
+    <div class="metric blue"><div class="metric-label">Sucursales activas</div><div class="metric-value">${ts.length}</div><div class="metric-sub">Con registros</div></div>
+  `;
+
+  // Chart: ventas vs meta
+  dc('ch-ventas-meta');
+  CHARTS['ch-ventas-meta'] = new Chart(document.getElementById('ch-ventas-meta'), {
+    type: 'bar',
+    data: { labels: ts, datasets: [
+      { label: 'Ventas', data: ts.map(t => byT[t].v),    backgroundColor: '#4F8EF7', borderRadius: 4 },
+      { label: 'Meta',   data: ts.map(t => byT[t].meta), backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{...LEGEND}}, scales:{x:{ticks:{...TICK,maxRotation:40}},y:{ticks:TICK,grid:GRID}} }
+  });
+
+  // KPI bar list
+  const kpiByT = {};
+  kpis.forEach(r => { if(!kpiByT[r.tienda]) kpiByT[r.tienda]=[]; kpiByT[r.tienda].push(r.kpi); });
+  const kpiTs = Object.keys(kpiByT).sort((a,b) => {
+    const am = kpiByT[a].reduce((s,v)=>s+v,0)/kpiByT[a].length;
+    const bm = kpiByT[b].reduce((s,v)=>s+v,0)/kpiByT[b].length;
+    return bm - am;
+  });
+  document.getElementById('kpi-bar-list').innerHTML = kpiTs.map(t => {
+    const arr = kpiByT[t]; const pct = Math.round(arr.reduce((s,v)=>s+v,0)/arr.length*100);
+    const cl = pct>=70?'#3EBF7A':pct>=40?'#F5A623':'#F05252';
+    return `<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px"><span>${t}</span><span style="font-family:var(--mono);color:var(--text1)">${pct}%</span></div>
+    <div class="bar-bg2"><div class="bar-f2" style="width:${pct}%;background:${cl}"></div></div></div>`;
+  }).join('');
+
+  // Chart: efectividad
+  const convByT = {};
+  D.funnel.forEach(r => {
+    const crm=r.CRM||0, v=r.Ventas||0;
+    if(crm>0) convByT[r.Tienda] = +(v/crm*100).toFixed(1);
+  });
+  const convTs = Object.keys(convByT).sort((a,b)=>convByT[b]-convByT[a]);
+  dc('ch-conv');
+  CHARTS['ch-conv'] = new Chart(document.getElementById('ch-conv'), {
+    type: 'bar',
+    data: { labels: convTs, datasets:[{ label:'Conv.%', data:convTs.map(t=>convByT[t]), backgroundColor:convTs.map(t=>convByT[t]>=15?'#3EBF7A':convByT[t]>=5?'#F5A623':'#F05252'), borderRadius:4 }]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{...TICK,maxRotation:40}},y:{ticks:{...TICK,callback:v=>v+'%'},grid:GRID}} }
+  });
+
+  // Chart: evolución mensual
+  renderEvol(res, ts.slice(0,5));
+}
+
+function renderEvol(res, topTs) {
+  dc('ch-evol');
+  const mesSet = MESES.filter(m => res.some(r => r.mes === m));
+  const datasets = topTs.map((t,i) => ({
+    label: t,
+    data: mesSet.map(m => {
+      const rows = res.filter(r => r.tienda===t && r.mes===m);
+      return rows.reduce((s,r) => s + (EVOL_METRIC==='ventas'?r.ventas:EVOL_METRIC==='crm'?r.crm:r.reus), 0);
+    }),
+    borderColor: COLORS[i], backgroundColor: 'transparent', tension:.3, pointRadius:3, borderWidth:2
+  }));
+  CHARTS['ch-evol'] = new Chart(document.getElementById('ch-evol'), {
+    type: 'line',
+    data: { labels: mesSet, datasets },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:LEGEND}, scales:{x:{ticks:{...TICK,maxRotation:30}},y:{ticks:TICK,grid:GRID}} }
+  });
+}
+
+function setMetricEvol(m, btn) {
+  EVOL_METRIC = m;
+  ['ventas','crm','reus'].forEach(k => {
+    const b = document.getElementById('btn-'+k);
+    if(k===m) { b.className='pill pb'; }
+    else { b.style.cssText='cursor:pointer;background:var(--bg4);border:1px solid var(--border2);color:var(--text2);display:inline-flex;align-items:center;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500'; }
+  });
+  const f = getFilters();
+  renderEvol(filterRes(f), Object.keys(aggByTienda(filterRes(f))).sort((a,b)=>aggByTienda(filterRes(f))[b].v-aggByTienda(filterRes(f))[a].v).slice(0,5));
+}
+
+/* ══════════════════════════════════════════════
+   VISTA 2 — PIPELINE
+══════════════════════════════════════════════ */
+function renderPipeline(f) {
+  const tienda = f.tienda;
+  const funnel = tienda==='all' ? D.funnel : D.funnel.filter(r => r.Tienda===tienda);
+  const totCRM  = funnel.reduce((s,r)=>s+(r.CRM||0),0);
+  const totDemo = funnel.reduce((s,r)=>s+(r.Demostracion||0),0);
+  const totVent = funnel.reduce((s,r)=>s+(r.Ventas||0),0);
+  const totVP   = funnel.reduce((s,r)=>s+(r.ventas_potenciales||0),0);
+  const mx = totCRM || 1;
+
+  document.getElementById('funnel-viz').innerHTML = [
+    ['CRM registrados',  totCRM,  mx,   '#4F8EF7'],
+    ['Demostraciones',   totDemo, mx,   '#3ECFAB'],
+    ['Ventas cerradas',  totVent, mx,   '#3EBF7A'],
+  ].map(([label,n,max,color]) => `
+    <div class="funnel-step">
+      <div class="funnel-label">${label}</div>
+      <div class="funnel-track"><div class="funnel-fill" style="width:${Math.round(n/max*100)}%;background:${color}">${n}</div></div>
+      <div class="funnel-count">${n}</div>
+    </div>`).join('');
+
+  const rD = totCRM>0?Math.round(totDemo/totCRM*100):0;
+  const rV = totDemo>0?Math.round(totVent/totDemo*100):0;
+  const rT = totCRM>0?Math.round(totVent/totCRM*100):0;
+  document.getElementById('funnel-ratios').innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <span class="pill pb">CRM→Demo: ${rD}%</span>
+      <span class="pill pg">Demo→Venta: ${rV}%</span>
+      <span class="pill pa">CRM→Venta: ${rT}%</span>
+    </div>`;
+
+  dc('ch-pipeline-state');
+  CHARTS['ch-pipeline-state'] = new Chart(document.getElementById('ch-pipeline-state'), {
+    type: 'doughnut',
+    data: { labels:['CRM','Demo','Ventas'], datasets:[{data:[totCRM,totDemo,totVent],backgroundColor:['#4F8EF7','#3ECFAB','#3EBF7A'],borderWidth:0}]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{...LEGEND,position:'bottom'}} }
+  });
+
+  const vpSorted = [...D.funnel].sort((a,b)=>(b.ventas_potenciales||0)-(a.ventas_potenciales||0)).filter(r=>r.ventas_potenciales>0);
+  const maxVP = vpSorted[0]?.ventas_potenciales || 1;
+  document.getElementById('vp-bars').innerHTML = vpSorted.map(r => {
+    const pct = Math.round(r.ventas_potenciales/maxVP*100);
+    const cl = r.ventas_potenciales>=12?'#F5A623':r.ventas_potenciales>=6?'#4F8EF7':'#5C6480';
+    return `<div style="margin-bottom:7px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:2px"><span>${r.Tienda}</span><span style="font-family:var(--mono);color:${cl}">${r.ventas_potenciales}</span></div>
+      <div class="bar-bg2"><div class="bar-f2" style="width:${pct}%;background:${cl}"></div></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('pipeline-tbody').innerHTML = D.funnel.filter(r=>r.CRM+r.Demostracion+r.Ventas>0).sort((a,b)=>{
+    const ar = a.CRM>0?a.Ventas/a.CRM:0; const br = b.CRM>0?b.Ventas/b.CRM:0; return br-ar;
+  }).map(r => {
+    const dR = r.CRM>0?Math.round(r.Demostracion/r.CRM*100):0;
+    const vR = r.Demostracion>0?Math.round(r.Ventas/r.Demostracion*100):0;
+    const tR = r.CRM>0?Math.round(r.Ventas/r.CRM*100):0;
+    const st = tR>=15?`<span class="pill pg">Alto</span>`:tR>=5?`<span class="pill pa">Medio</span>`:`<span class="pill pr">Bajo</span>`;
+    return `<tr><td style="font-weight:500">${r.Tienda}</td><td class="mono">${r.CRM}</td><td class="mono">${r.Demostracion}</td><td class="mono">${r.Ventas}</td>
+      <td class="mono">${dR}%</td><td class="mono">${vR}%</td><td class="mono">${tR}%</td>
+      <td class="mono">${r.ventas_potenciales||0}</td><td>${st}</td></tr>`;
+  }).join('');
+
+  const lim = D.alertas?.ambar?.filter(a=>a.tipo==='B5').map(a=>a.titulo)||[];
+  const limData = D.mercado?.limitantes_compra || {};
+  const limKeys = Object.keys(limData).slice(0,6);
+  dc('ch-limitantes');
+  CHARTS['ch-limitantes'] = new Chart(document.getElementById('ch-limitantes'), {
+    type: 'bar',
+    data: { labels: limKeys, datasets:[{data:limKeys.map(k=>limData[k]),backgroundColor:COLORS,borderRadius:4}]},
+    options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:TICK,grid:GRID},y:{ticks:{...TICK,font:{size:10,family:'DM Sans'}}}}}
+  });
+}
+
+/* ══════════════════════════════════════════════
+   VISTA 3 — RANKING
+══════════════════════════════════════════════ */
+function renderRanking(f) {
+  const kpis = filterKPI(f);
+  const execMap = {};
+  kpis.forEach(r => {
+    const k = r.ejecutivo + '||' + r.tienda;
+    if (!r.ejecutivo || r.ejecutivo=='0') return;
+    if (!execMap[k]) execMap[k] = {e:r.ejecutivo,t:r.tienda,kpis:[],demos:0,reus:0,cn:0,v:0,meta:0};
+    execMap[k].kpis.push(r.kpi);
+    execMap[k].demos+=r.demos||0; execMap[k].reus+=r.reus||0;
+    execMap[k].cn+=r.clientes_nuevos||0; execMap[k].v+=r.ventas||0; execMap[k].meta+=r.meta_ventas||0;
+  });
+  const ranked = Object.values(execMap).map(x => {
+    x.avg = x.kpis.reduce((s,v)=>s+v,0)/x.kpis.length;
+    x.cumpl = x.meta>0?Math.round(x.v/x.meta*100):0;
+    x.trend = x.kpis.length>=2?(x.kpis.at(-1)>x.kpis.at(-2)?'up':x.kpis.at(-1)<x.kpis.at(-2)?'dn':'eq'):'eq';
+    return x;
+  }).sort((a,b)=>b.avg-a.avg);
+
+  const rankIcons = ['🥇','🥈','🥉'];
+  document.getElementById('ranking-tbody').innerHTML = ranked.map((x,i) => {
+    const pct = Math.round(x.avg*100);
+    const lvl = pct>=75?'<span class="pill pg">Top</span>':pct>=50?'<span class="pill pb">Regular</span>':'<span class="pill pa">Desarrollo</span>';
+    const tr  = x.trend==='up'?'<span class="trend up">▲</span>':x.trend==='dn'?'<span class="trend dn">▼</span>':'<span class="trend eq">—</span>';
+    const cls = i<3?'style="background:rgba(255,255,255,.02)"':'';
+    return `<tr ${cls}><td>${rankIcons[i]||i+1}</td>
+      <td style="font-weight:500">${x.e}</td><td style="color:var(--text2);font-size:11px">${x.t}</td>
+      <td class="mono">${x.v}</td><td class="mono" style="color:var(--text3)">${x.meta}</td>
+      <td><div class="bar-w"><div class="bar-bg2"><div class="bar-f2" style="width:${Math.min(100,x.cumpl)}%;background:${x.cumpl>=80?'#3EBF7A':x.cumpl>=50?'#F5A623':'#F05252'}"></div></div><span class="mono" style="font-size:10px;margin-left:4px">${x.cumpl}%</span></div></td>
+      <td class="mono">${x.demos}</td><td class="mono">${x.reus}</td><td class="mono">${x.cn}</td>
+      <td class="mono" style="font-weight:500">${pct}%</td><td>${tr}</td><td>${lvl}</td></tr>`;
+  }).join('');
+
+  const top5 = ranked.slice(0,5);
+  const mesLabels = [...new Set(kpis.map(r=>r.fecha).filter(Boolean))].sort().map(f=>{
+    const [y,m]=f.split('-'); return (MESES[parseInt(m)-1]||m).substring(0,3)+' '+y.slice(2);
+  });
+  dc('ch-kpi-evol');
+  CHARTS['ch-kpi-evol'] = new Chart(document.getElementById('ch-kpi-evol'), {
+    type: 'line',
+    data: { labels: mesLabels, datasets: top5.map((x,i) => ({
+      label: x.e.split(' ')[0],
+      data: [...new Set(kpis.map(r=>r.fecha).filter(Boolean))].sort().map(f => {
+        const row = kpis.find(r=>r.ejecutivo===x.e&&r.tienda===x.t&&r.fecha===f);
+        return row ? Math.round(row.kpi*100) : null;
+      }),
+      borderColor:COLORS[i], backgroundColor:'transparent', tension:.3, pointRadius:3, borderWidth:2, spanGaps:true
+    }))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:LEGEND},scales:{x:{ticks:{...TICK,maxRotation:30}},y:{min:0,max:100,ticks:{...TICK,callback:v=>v+'%'},grid:GRID}}}
+  });
+
+  const top3 = ranked.slice(0,3);
+  dc('ch-radar');
+  CHARTS['ch-radar'] = new Chart(document.getElementById('ch-radar'), {
+    type: 'radar',
+    data: {
+      labels: ['KPI','Ventas','Demos','Reuniones','Cli. nuevos'],
+      datasets: top3.map((x,i)=>({
+        label: x.e.split(' ')[0],
+        data: [Math.round(x.avg*100), Math.min(100,x.cumpl), Math.min(100,x.demos*8), Math.min(100,x.reus*4), Math.min(100,x.cn*2)],
+        borderColor:COLORS[i], backgroundColor:COLORS[i]+'22', pointRadius:3, borderWidth:2
+      }))
+    },
+    options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:100,ticks:{color:'#5C6480',font:{size:9}},grid:{color:'rgba(255,255,255,0.06)'},pointLabels:{color:'#9BA3B8',font:{size:10}}}},plugins:{legend:LEGEND}}
+  });
+}
+
+/* ══════════════════════════════════════════════
+   VISTA 4 — ALERTAS
+══════════════════════════════════════════════ */
+function renderAlertas() {
+  const alertas = D.alertas || { rojas:[], ambar:[] };
+  const U = D.umbrales || {};
+
+  document.getElementById('count-red').textContent   = alertas.rojas.length;
+  document.getElementById('count-amber').textContent = alertas.ambar.length;
+  document.getElementById('badge-alertas').textContent = alertas.rojas.length;
+
+  const renderAlerts = (items, cls) => items.map(a => `
+    <div class="alert-item ${cls}">
+      <div class="alert-icon ${cls}">${cls==='red'?'!':'▶'}</div>
+      <div>
+        <div class="alert-title">${a.titulo}</div>
+        <div class="alert-detail">${a.detalle}</div>
+        <div class="alert-meta">Variable: ${a.kpi_variable} · Valor actual: ${a.valor}</div>
+      </div>
+    </div>`).join('') || `<div style="color:var(--text3);font-size:12px;padding:12px 0">Sin alertas en este nivel.</div>`;
+
+  document.getElementById('alerts-red').innerHTML   = renderAlerts(alertas.rojas, 'red');
+  document.getElementById('alerts-amber').innerHTML = renderAlerts(alertas.ambar, 'amber');
+
+  // Matriz de decisión
+  const matData = D.funnel.filter(r=>r.CRM>0||r.Ventas>0).map(r => {
+    const kpiArr = D.kpi_ejecutivos.filter(k=>k.tienda===r.Tienda).map(k=>k.kpi);
+    const kpiAvg = kpiArr.length?Math.round(kpiArr.reduce((s,v)=>s+v,0)/kpiArr.length*100):20;
+    const conv   = r.CRM>0?+(r.Ventas/r.CRM*100).toFixed(1):0;
+    return { t:r.Tienda, kpi:kpiAvg, conv, r:Math.max(7,Math.min(20,r.Ventas*2+5)) };
+  });
+  dc('ch-matrix');
+  CHARTS['ch-matrix'] = new Chart(document.getElementById('ch-matrix'), {
+    type: 'bubble',
+    data: { datasets:[{ data: matData.map(d=>({x:d.conv,y:d.kpi,r:d.r,label:d.t})),
+      backgroundColor: matData.map(d=>d.kpi>=60&&d.conv>=10?'rgba(62,191,122,.7)':d.kpi>=40||d.conv>=5?'rgba(245,166,35,.7)':'rgba(240,82,82,.7)'),
+      borderWidth:0 }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw.label} · KPI ${ctx.raw.y}% · Conv. ${ctx.raw.x}%`}}},
+      scales:{
+        x:{title:{display:true,text:'Conversión CRM→Venta (%)',color:'#5C6480',font:{size:10}},min:-2,max:60,ticks:TICK,grid:GRID},
+        y:{title:{display:true,text:'KPI promedio (%)',color:'#5C6480',font:{size:10}},min:0,max:110,ticks:TICK,grid:GRID}
+      }
+    }
+  });
+
+  // Variables de alerta
+  document.getElementById('alert-variables').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;font-size:11px">
+      ${[
+        ['A1','tasa_conv_crm_venta','Conv. CRM→Venta = 0% con actividad','Rojo si conv=0 y CRM≥'+U.crm_minimo+' y demos>0'],
+        ['A2','ventas_mensuales_consecutivas_cero','Meses sin ventas','Rojo si ≥'+U.meses_sin_venta_critico+' meses · Ámbar si ≥'+U.meses_sin_venta_atencion],
+        ['A3','kpi_ejecutivo_consecutivo_bajo','KPI ejecutivo bajo sostenido','Rojo si KPI < '+Math.round(U.kpi_rojo*100)+'% por 2+ meses'],
+        ['A4','crm_mensual','CRM mensual = 0','Rojo si no hay ningún prospecto nuevo el último mes'],
+        ['A5','caida_kpi_mensual_pp','Caída de KPI entre meses','Rojo si caída ≥ '+U.caida_kpi_critica+'pp · Ámbar si ≥ '+U.caida_kpi_atencion+'pp'],
+        ['B1','ventas_potenciales_campo','Potencial sin capitalizar','Ámbar si VP ≥ '+U.vp_alto+' y conv < '+U.conv_amarillo+'%'],
+        ['B3','tasa_conv_crm_venta','Conversión baja','Ámbar si '+U.conv_rojo+'% ≤ conv < '+U.conv_amarillo+'%'],
+        ['B5','tasa_demo_venta','Demos sin conversión','Ámbar si demos ≥ 10 y ratio demo→venta < 10%'],
+      ].map(([tipo,var_,nombre,desc]) => `
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+            <span class="pill ${tipo.startsWith('A')?'pr':'pa'}">${tipo}</span>
+            <span style="font-weight:500;color:var(--text1)">${nombre}</span>
+          </div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-bottom:3px">${var_}</div>
+          <div style="color:var(--text2)">${desc}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════
+   VISTA 5 — MERCADO
+══════════════════════════════════════════════ */
+function renderMercado() {
+  const M = D.mercado || {};
+
+  const mkDoughnut = (id, data) => {
+    dc(id);
+    const keys = Object.keys(data); const vals = keys.map(k=>data[k]);
+    CHARTS[id] = new Chart(document.getElementById(id), {
+      type: 'doughnut',
+      data: { labels:keys, datasets:[{data:vals,backgroundColor:COLORS,borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{...LEGEND,position:'bottom'}}}
+    });
+  };
+  const mkBar = (id, data, horizontal=false) => {
+    dc(id);
+    const keys=Object.keys(data); const vals=keys.map(k=>data[k]);
+    CHARTS[id] = new Chart(document.getElementById(id), {
+      type:'bar',
+      data:{labels:keys,datasets:[{data:vals,backgroundColor:COLORS,borderRadius:4}]},
+      options:{indexAxis:horizontal?'y':'x',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:TICK,grid:GRID},y:{ticks:TICK,grid:GRID}}}
+    });
+  };
+
+  mkDoughnut('ch-perfil',  M.perfil_cliente   || {});
+  mkDoughnut('ch-interes', M.interes_dron      || {});
+  mkDoughnut('ch-pago',    M.tipo_pago         || {});
+  mkBar('ch-proced',   M.procedencia_cliente   || {});
+  mkBar('ch-cultivos', M.cultivos             || {}, true);
+
+  // Hectáreas
+  const hect = M.hectareas_promedio || {};
+  const hSorted = Object.entries(hect).filter(([,v])=>v<2000).sort((a,b)=>b[1]-a[1]);
+  const maxH = hSorted[0]?.[1] || 1;
+  document.getElementById('hect-list').innerHTML = hSorted.map(([t,v]) => `
+    <div style="margin-bottom:7px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:2px"><span>${t}</span><span style="font-family:var(--mono);color:var(--text1)">${v} ha</span></div>
+      <div class="bar-bg2"><div class="bar-f2" style="width:${Math.round(v/maxH*100)}%;background:#4F8EF7"></div></div>
+    </div>`).join('');
+
+  const roi = M.roi_meses || {};
+  const roiE = Object.entries(roi).sort((a,b)=>b[1]-a[1]);
+  const maxR = roiE[0]?.[1]||1;
+  document.getElementById('roi-list').innerHTML = roiE.map(([m,n]) => {
+    const cl = parseInt(m)<=6?'#3EBF7A':parseInt(m)<=9?'#F5A623':'#F05252';
+    return `<div style="margin-bottom:7px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:2px"><span>${parseInt(m)} meses</span><span style="font-family:var(--mono);color:${cl}">${n} resp.</span></div>
+      <div class="bar-bg2"><div class="bar-f2" style="width:${Math.round(n/maxR*100)}%;background:${cl}"></div></div>
+    </div>`;
+  }).join('');
+
+  const ic = M.intencion_compra || {};
+  const totIC = Object.values(ic).reduce((s,v)=>s+v,0)||1;
+  document.getElementById('intencion-viz').innerHTML = Object.entries(ic).map(([l,n]) => {
+    const pct=Math.round(n/totIC*100);
+    const cl=l.toLowerCase().includes('si')?'#3EBF7A':l.toLowerCase().includes('no ')&&!l.includes('pensarlo')?'#F05252':'#F5A623';
+    return `<div style="margin-bottom:9px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px"><span>${l}</span><span style="font-family:var(--mono)">${n} (${pct}%)</span></div>
+      <div class="bar-bg2" style="height:6px"><div class="bar-f2" style="width:${pct}%;background:${cl}"></div></div>
+    </div>`;
+  }).join('') + `<div style="margin-top:12px;padding:10px;background:rgba(62,191,122,.07);border:1px solid rgba(62,191,122,.15);border-radius:8px;font-size:11px;color:var(--text2)"><span style="color:var(--success);font-weight:500">Insight clave:</span> El 74% de los prospectos en campo declara intención activa de compra. El cuello de botella es el proceso de cierre, no la demanda.</div>`;
+
+  // Variables de mercado
+  document.getElementById('market-variables').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;font-size:11px">
+      ${[
+        ['perfil_cliente','Perfil del cliente','Tipo de empresa/persona en CRM','crm → Perfil de cliente'],
+        ['interes_dron','Interés por dron','Modelo de interés declarado en CRM','crm → ¿En que dron está interesado?'],
+        ['tipo_pago','Tipo de pago','Forma de pago preferida según CRM','crm → Tipo de pago'],
+        ['procedencia_cliente','Procedencia','Canal por el que llegó el cliente','crm → Procedencia del cliente'],
+        ['cultivos','Cultivos','Tipos de cultivo de los prospectos','crm → Datos de cultivo'],
+        ['hectareas_promedio','Hectáreas prom.','Superficie agrícola promedio del cliente','crm → Hectareas (agrupado por Tienda)'],
+        ['roi_meses','ROI estimado','Meses est. de recuperación en campo','visitas → Cuántos meses se estima recuperar la inversión'],
+        ['intencion_compra','Intención de compra','Respuesta del prospecto en visita','visitas → ¿Está interesado en comprar un dron agrícola?'],
+        ['limitantes_compra','Limitantes','Barreras declaradas en campo','visitas → Limitantes de compras del dron'],
+        ['uso_dron','Uso del dron','Para qué usará el dron según ventas','ventas → Uso'],
+        ['segmento_venta','Segmento','Venta directa vs subdealer','ventas → Segmento'],
+        ['financiamiento','Financiamiento','Tipo de financiamiento usado en venta','ventas → Financiamiento'],
+      ].map(([k,n,d,src]) => `
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px">
+          <div style="font-weight:500;color:var(--text1);margin-bottom:3px">${n}</div>
+          <div style="color:var(--text2);margin-bottom:4px">${d}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--accent)">${src}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+/* ── INIT ── */
+loadData();
+</script>
+</body>
+</html>
